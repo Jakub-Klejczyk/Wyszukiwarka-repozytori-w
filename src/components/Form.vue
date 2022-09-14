@@ -1,93 +1,49 @@
 <script>
+import axios from "axios";
+
 export default {
   data() {
     return {
-      query: "",
-      filter: "",
+      inputData: "",
+      inputVal: false,
+      infoMsg: "",
+      data: [],
     };
   },
   methods: {
-    loadData() {
-      fetch("https://api.github.com/repositories")
-        .then((res) => res.json())
-        .then((dataRow) => {
-          let data = dataRow.map((repo) => {
-            return {
-              name: repo.name,
-              fullName: repo.full_name,
-              avatar: repo.owner.avatar_url,
-              url: repo.html_url,
-            };
-          });
-          console.log(data);
-          this.renderData(data);
-        });
-    },
-    validateInputValue(e) {
-      this.query = e.target.value;
-      const queryVal = this.query.split("");
-      if (queryVal.length >= 3) {
-        this.filter = this.query;
-      }
-    },
-    renderData(data) {
-      document.querySelector("#container").innerHTML = "";
-
-      const rootElement = document.querySelector("#container");
-
-      if (this.filter) {
-        const filteredData = data.filter((item) => {
-          return item.fullName.toLowerCase().includes(this.filter);
-        });
-
-        const filteredAndSlicedData = filteredData.slice(0, 10);
-        console.log(filteredAndSlicedData);
-        rootElement.appendChild(this.createItemElement(filteredAndSlicedData));
+    validateInputValue() {
+      if (this.inputData.length >= 3) {
+        return (this.inputVal = true);
       } else {
-        alert("Wprowadź co najmniej trzy znaki w polu 'Szukaj...'");
+        return (this.inputVal = false);
       }
-
-      this.query = "";
-      this.filter = "";
-      document.querySelector("#search").value = "";
     },
-    createItemElement(data) {
-      const itemElement = document.createElement("li");
+    loadData() {
+      if (!this.validateInputValue()) {
+        this.infoMsg = "Wpisz co najmniej 3 znaki!";
+        this.data = [];
+        setTimeout(() => {
+          this.infoMsg = "";
+        }, 3000);
+        return;
+      }
+      const query = this.inputData.trim().toLocaleLowerCase();
 
-      data.forEach((item) => {
-        itemElement.appendChild(
-          this.appendData(item.name, item.fullName, item.avatar, item.url)
-        );
-      });
-
-      return itemElement;
-    },
-    appendData(name, fullName, avatar, url) {
-      const divElement = document.createElement("div");
-      const aElement = document.createElement("a");
-      const strongElement = document.createElement("strong");
-      const pElement = document.createElement("p");
-      const textElement = document.createElement("div");
-      const imgElement = document.createElement("img");
-
-      divElement.classList.add("item");
-      strongElement.classList.add("strong");
-      pElement.classList.add("para");
-      textElement.classList.add("text");
-      imgElement.classList.add("avatar");
-      aElement.classList.add("anhor");
-
-      strongElement.innerText = name;
-      pElement.innerText = fullName;
-      imgElement.src = avatar;
-      aElement.href = url;
-      aElement.target = "_blank";
-
-      textElement.append(strongElement, pElement);
-      aElement.append(imgElement, textElement);
-      divElement.append(aElement);
-
-      return divElement;
+      axios
+        .get(`https://api.github.com/search/repositories?q=${query}`, {
+          headers: {
+            Accept: "application/vnd.github.v3+json",
+          },
+        })
+        .then((res) => {
+          this.data = res.data.items;
+          this.data = this.data.slice(0, 10);
+        })
+        .catch((error) => {
+          if (error) {
+            this.infoMsg = "Brak szukanego repozytorium";
+          }
+        });
     },
   },
 };
@@ -101,11 +57,26 @@ export default {
         type="text"
         placeholder="Szukaj..."
         autocomplete="off"
-        @input="validateInputValue($event)"
+        v-model="inputData"
       />
       <button><span class="material-symbols-outlined"> search </span></button>
     </form>
-    <ul id="container"></ul>
+    <ul id="container" v-if="data.length > 0">
+      <li v-for="item in data" :key="item.id" class="item">
+        <a class="anhor" :href="item.html_url" target="_blank">
+          <img
+            class="avatar"
+            :src="item.owner.avatar_url"
+            alt="Obraz użytkownika"
+          />
+          <div class="text">
+            <strong class="strong">{{ item.name }}</strong>
+            <p class="para">{{ item.full_name }}</p>
+          </div>
+        </a>
+      </li>
+    </ul>
+    <p>{{ infoMsg }}</p>
   </div>
 </template>
 
@@ -113,7 +84,7 @@ export default {
 form {
   width: 30rem;
   height: 4rem;
-  background-color: #53bc9c;
+  background-color: rgb(42, 187, 155);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -123,6 +94,8 @@ form {
   width: fit-content;
   border-radius: 0.5rem;
   overflow: hidden;
+  font-size: 0.9rem;
+  font-family: "Monstserrat", sans-serif;
 }
 #search {
   background-color: transparent;
@@ -177,10 +150,10 @@ li {
   justify-content: space-between;
 }
 .strong {
-  color: #bcc4d2;
+  color: #ffffff;
 }
 .para {
-  color: #617587;
+  color: rgb(116, 154, 177);
   margin: 0;
 }
 </style>
