@@ -76,7 +76,7 @@ export default {
         </a>
       </li>
     </ul>
-    <p>{{ infoMsg }}</p>
+    <p v-show="infoMsg">{{ infoMsg }}</p>
   </div>
 </template>
 
